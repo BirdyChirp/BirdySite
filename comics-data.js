@@ -5,21 +5,21 @@
 
 const COMICS = [
   {
-    slug: "catch-the-squirrel",
-    title: "Counter-Squirrelism Strike Force",
-    date: "Aug 10, 2026",
-    thumbnail: "comics/squirrel-s2.png",
-    pages: [
-      "comics/squirrel-s2.png"
-    ]
-  },
-  {
     slug: "suspicious-box",
     title: "What to do when you see a suspicious box?",
     date: "Aug 6, 2026",
     thumbnail: "comics/sus-box-s1_up.png",
     pages: [
       "comics/sus-box-s1_up.png"
+    ]
+  },  
+  {
+    slug: "catch-the-squirrel",
+    title: "Counter-Squirrelism Strike Force",
+    date: "Aug 10, 2026",
+    thumbnail: "comics/squirrel-s2.png",
+    pages: [
+      "comics/squirrel-s2.png"
     ]
   }
 ];
