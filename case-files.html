@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Case Files — Birdy Chirp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=PT+Serif:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+
+<script src="site.js"></script>
+
+<section class="page-banner">
+  <div class="hero-halftone"></div>
+  <div class="wrap">
+    <h1 class="display">Case Files</h1>
+    <p>The written record. Updates, stories, and whatever Agent Chirp Chirp Seven decides is worth reporting.</p>
+  </div>
+</section>
+
+<section class="wrap activity">
+  <div id="case-grid" class="case-grid"></div>
+</section>
+
+<script src="cases-data.js"></script>
+<script>
+  const grid = document.getElementById('case-grid');
+
+  CASE_FILES.slice().reverse().forEach(story => {
+    const card = document.createElement('a');
+    card.href = `case-file.html?story=${story.slug}`;
+    card.className = 'case-card';
+    card.innerHTML = `
+      <div class="case-card-date">${story.date}</div>
+      <div class="case-card-title">${story.title}</div>
+      <div class="case-card-excerpt">${story.excerpt}</div>
+      <span class="btn btn-primary" style="align-self:flex-start;">Read</span>
+    `;
+    grid.appendChild(card);
+  });
+</script>
+
+</body>
+</html>

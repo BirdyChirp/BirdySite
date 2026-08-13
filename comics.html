@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comics — Birdy Chirp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+
+<script src="site.js"></script>
+
+<section class="page-banner">
+  <div class="hero-halftone"></div>
+  <div class="wrap">
+    <h1 class="display">Comics</h1>
+    <p>Strips from the field. Click a page to browse, use the arrows to flip through.</p>
+  </div>
+</section>
+
+<div class="wrap-wide comic-layout">
+
+  <div class="comic-viewer" id="comic-viewer">
+    <div class="comic-viewer-bar">
+      <div class="monitor-bar-left">
+        <div class="rec-dot"></div>
+        <div class="monitor-label" id="comic-title-label">Exhibit</div>
+      </div>
+      <div class="comic-controls">
+        <button class="comic-ctrl-btn" id="arrow-prev">&#10094; Prev</button>
+        <span class="monitor-label" id="comic-page-label"></span>
+        <button class="comic-ctrl-btn" id="arrow-next">Next &#10095;</button>
+        <span class="comic-ctrl-divider"></span>
+        <button class="comic-ctrl-btn" id="zoom-out">－</button>
+        <span class="monitor-label" id="zoom-label">100%</span>
+        <button class="comic-ctrl-btn" id="zoom-in">＋</button>
+        <span class="comic-ctrl-divider"></span>
+        <button class="comic-ctrl-btn" id="comic-maximize-btn">⛶ Fullscreen</button>
+      </div>
+    </div>
+    <div class="comic-frame" id="comic-frame">
+      <div id="comic-page-display" class="comic-page-display"></div>
+    </div>
+  </div>
+
+  <div class="comic-gallery" id="comic-gallery"></div>
+
+</div>
+
+<script src="comics-data.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const requestedSlug = params.get('comic');
+  let comicIndex = Math.max(0, COMICS.findIndex(c => c.slug === requestedSlug));
+  let pageIndex = 0;
+
+  const zoomLevels = [50, 70, 85,100, 125, 150, 175, 200];
+  let zoomIndex = 3; // 100%
+
+  const titleLabel = document.getElementById('comic-title-label');
+  const pageLabel = document.getElementById('comic-page-label');
+  const zoomLabel = document.getElementById('zoom-label');
+  const display = document.getElementById('comic-page-display');
+  const frame = document.getElementById('comic-frame');
+  const gallery = document.getElementById('comic-gallery');
+  const prevBtn = document.getElementById('arrow-prev');
+  const nextBtn = document.getElementById('arrow-next');
+  const zoomOutBtn = document.getElementById('zoom-out');
+  const zoomInBtn = document.getElementById('zoom-in');
+
+  function isImagePath(str) {
+    return str.includes('.');
+  }
+
+  function renderGallery() {
+    gallery.innerHTML = '';
+    COMICS.forEach((comic, i) => {
+      const thumb = document.createElement('button');
+      thumb.className = 'comic-thumb' + (i === comicIndex ? ' active' : '');
+      thumb.innerHTML = isImagePath(comic.thumbnail)
+        ? `<img src="${comic.thumbnail}" alt="${comic.title}">`
+        : `<span class="comic-thumb-emoji">${comic.thumbnail}</span>`;
+      thumb.title = comic.title;
+      thumb.addEventListener('click', () => {
+        comicIndex = i;
+        pageIndex = 0;
+        render();
+      });
+      gallery.appendChild(thumb);
+    });
+  }
+
+  function applyZoom() {
+    const img = display.querySelector('.comic-page-img');
+    zoomLabel.textContent = zoomLevels[zoomIndex] + '%';
+    if (img) img.style.width = zoomLevels[zoomIndex] + '%';
+    zoomOutBtn.disabled = zoomIndex === 0;
+    zoomInBtn.disabled = zoomIndex === zoomLevels.length - 1;
+  }
+
+  function render() {
+    const comic = COMICS[comicIndex];
+    const page = comic.pages[pageIndex];
+
+    document.title = `${comic.title} — Birdy Chirp`;
+    titleLabel.textContent = comic.title;
+    pageLabel.textContent = comic.pages.length > 1
+      ? `Page ${pageIndex + 1} / ${comic.pages.length}`
+      : '';
+
+    display.innerHTML = isImagePath(page)
+      ? `<img src="${page}" alt="${comic.title}" class="comic-page-img">`
+      : `<span class="comic-page-emoji">${page}</span>`;
+    applyZoom();
+
+    frame.scrollTop = 0;
+    prevBtn.disabled = (comicIndex === 0 && pageIndex === 0);
+    nextBtn.disabled = (comicIndex === COMICS.length - 1 && pageIndex === comic.pages.length - 1);
+
+    [...gallery.children].forEach((el, i) => el.classList.toggle('active', i === comicIndex));
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (pageIndex > 0) {
+      pageIndex--;
+    } else if (comicIndex > 0) {
+      comicIndex--;
+      pageIndex = COMICS[comicIndex].pages.length - 1;
+    }
+    render();
+  });
+
+  nextBtn.addEventListener('click', () => {
+    const comic = COMICS[comicIndex];
+    if (pageIndex < comic.pages.length - 1) {
+      pageIndex++;
+    } else if (comicIndex < COMICS.length - 1) {
+      comicIndex++;
+      pageIndex = 0;
+    }
+    render();
+  });
+
+  zoomOutBtn.addEventListener('click', () => {
+    if (zoomIndex > 0) { zoomIndex--; applyZoom(); }
+  });
+  zoomInBtn.addEventListener('click', () => {
+    if (zoomIndex < zoomLevels.length - 1) { zoomIndex++; applyZoom(); }
+  });
+
+  const comicViewer = document.getElementById('comic-viewer');
+  const maximizeBtn = document.getElementById('comic-maximize-btn');
+  maximizeBtn.addEventListener('click', () => {
+    const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!isFullscreen) {
+      if (comicViewer.requestFullscreen) comicViewer.requestFullscreen();
+      else if (comicViewer.webkitRequestFullscreen) comicViewer.webkitRequestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    maximizeBtn.textContent = document.fullscreenElement ? '⛶ Exit Fullscreen' : '⛶ Fullscreen';
+  });
+  document.addEventListener('webkitfullscreenchange', () => {
+    maximizeBtn.textContent = document.webkitFullscreenElement ? '⛶ Exit Fullscreen' : '⛶ Fullscreen';
+  });
+
+  renderGallery();
+  render();
+</script>
+
+</body>
+</html>

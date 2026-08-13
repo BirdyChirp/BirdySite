@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission — Birdy Chirp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+
+<script src="site.js"></script>
+
+<section class="page-banner">
+  <div class="hero-halftone"></div>
+  <div class="wrap">
+    <a href="missions.html" class="back-link">&larr; Back to Missions</a>
+    <h1 id="mission-title" class="display">Loading file…</h1>
+    <p id="mission-tagline"></p>
+  </div>
+</section>
+
+<div class="wrap-wide play-layout">
+  <div>
+    <div class="player-wrapper" id="player-wrapper">
+      <div class="monitor">
+        <div class="monitor-bar">
+          <div class="monitor-bar-left">
+            <div class="rec-dot"></div>
+            <div class="monitor-label">Live Feed</div>
+          </div>
+          <button class="fullscreen-btn" id="fullscreen-btn">⛶ Fullscreen</button>
+        </div>
+        <iframe id="game-frame" class="monitor-frame" src="" title="Game"></iframe>
+      </div>
+    </div>
+    <div class="mission-info">
+      <h2 class="display">Briefing</h2>
+      <p id="mission-description"></p>
+    </div>
+
+    <div class="sidebar-block" style="margin-top:28px;">
+      <h3 class="display">Comments</h3>
+      <div class="comments-empty">No transmissions yet. Be the first to check in.</div>
+    </div>
+  </div>
+
+  <div>
+    <div class="sidebar-block">
+      <h3 class="display">Up Next</h3>
+      <div id="up-next-list"></div>
+    </div>
+  </div>
+</div>
+
+<script src="games-data.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get('game');
+  const game = GAMES.find(g => g.slug === slug) || GAMES[0];
+
+  document.title = `${game.title} — Birdy Chirp`;
+  document.getElementById('mission-title').textContent = game.title;
+  document.getElementById('mission-tagline').textContent = game.tagline;
+  document.getElementById('mission-description').textContent = game.description;
+  document.getElementById('game-frame').src = game.path;
+
+  const upNext = document.getElementById('up-next-list');
+  GAMES.filter(g => g.slug !== game.slug).forEach(g => {
+    const item = document.createElement('a');
+    item.href = `mission.html?game=${g.slug}`;
+    item.className = 'up-next-item';
+    const isImageThumb = g.thumbnail.includes('.');
+    const thumbHtml = isImageThumb
+      ? `<img src="${g.thumbnail}" alt="${g.title}" class="up-next-thumb-img">`
+      : g.thumbnail;
+    item.innerHTML = `
+      <div class="up-next-thumb">${thumbHtml}</div>
+      <div>
+        <div class="up-next-title">${g.title}</div>
+        <div class="up-next-status">${g.statusLabel}</div>
+      </div>
+    `;
+    upNext.appendChild(item);
+  });
+
+  const wrapper = document.getElementById('player-wrapper');
+  const fsBtn = document.getElementById('fullscreen-btn');
+  fsBtn.addEventListener('click', () => {
+    const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+    if (!isFullscreen) {
+      if (wrapper.requestFullscreen) wrapper.requestFullscreen();
+      else if (wrapper.webkitRequestFullscreen) wrapper.webkitRequestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    fsBtn.textContent = document.fullscreenElement ? '⛶ Exit Fullscreen' : '⛶ Fullscreen';
+  });
+  document.addEventListener('webkitfullscreenchange', () => {
+    fsBtn.textContent = document.webkitFullscreenElement ? '⛶ Exit Fullscreen' : '⛶ Fullscreen';
+  });
+
+  // Scroll straight to the game so players don't land on the banner and have to hunt for it
+  window.addEventListener('load', () => {
+    wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+</script>
+
+</body>
+</html>

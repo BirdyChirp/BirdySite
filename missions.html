@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Missions — Birdy Chirp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+
+<script src="site.js"></script>
+
+<section class="page-banner">
+  <div class="hero-halftone"></div>
+  <div class="wrap">
+    <h1 class="display">Missions</h1>
+    <p>Every operation on file. Some are field-ready, some are still in training.</p>
+  </div>
+</section>
+
+<section class="wrap activity">
+  <div id="game-grid" class="game-grid"></div>
+</section>
+
+<script src="games-data.js"></script>
+<script>
+  const grid = document.getElementById('game-grid');
+
+  GAMES.forEach(game => {
+    const card = document.createElement('a');
+    card.href = `mission.html?game=${game.slug}`;
+    card.className = 'game-card';
+    const isImageThumb = game.thumbnail.includes('.');
+    const thumbHtml = isImageThumb
+      ? `<img src="${game.thumbnail}" alt="${game.title}" class="thumb-img">`
+      : game.thumbnail;
+    card.innerHTML = `
+      <div class="game-card-thumb">
+        ${thumbHtml}
+        <div class="status-badge ${game.status}">${game.statusLabel}</div>
+      </div>
+      <div class="game-card-body">
+        <div class="game-card-title">${game.title}</div>
+        <div class="game-card-desc">${game.tagline}</div>
+        <span class="btn btn-primary" style="align-self:flex-start;">Play</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+</script>
+
+</body>
+</html>
