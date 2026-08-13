@@ -58,36 +58,7 @@
     <h2 class="display">Recent Activity</h2>
     <div class="note">Case no. 0192-B · status: ongoing</div>
   </div>
-  <div class="panels">
-    <div class="panel">
-      <div class="panel-halftone"></div>
-      <div class="flag mission">Mission</div>
-      <div class="panel-date">Aug 9</div>
-      <div class="panel-title">Operation: Backyard Blackout</div>
-      <div class="panel-note">A stealth mission gone slightly wrong</div>
-    </div>
-    <div class="panel">
-      <div class="panel-halftone"></div>
-      <div class="flag comic">Comic</div>
-      <div class="panel-date">Aug 6</div>
-      <div class="panel-title">The Case of the Suspicious Squirrel</div>
-      <div class="panel-note">6-panel strip</div>
-    </div>
-    <div class="panel">
-      <div class="panel-halftone"></div>
-      <div class="flag case">Case File</div>
-      <div class="panel-date">Aug 2</div>
-      <div class="panel-title">Debrief: How I Escaped the Cat Next Door</div>
-      <div class="panel-note">5 min read</div>
-    </div>
-    <div class="panel">
-      <div class="panel-halftone"></div>
-      <div class="flag comic">Comic</div>
-      <div class="panel-date">Jul 28</div>
-      <div class="panel-title">Undercover at the Bird Feeder</div>
-      <div class="panel-note">4-panel strip</div>
-    </div>
-  </div>
+  <div class="panels" id="activity-panels"></div>
 </section>
 
 <section class="transmission">
@@ -102,6 +73,56 @@
     </div>
   </div>
 </section>
+
+<script src="games-data.js"></script>
+<script src="comics-data.js"></script>
+<script src="cases-data.js"></script>
+<script>
+  // Pull the newest couple items from each content type and build one
+  // combined, clickable feed. Edit games-data.js / comics-data.js /
+  // cases-data.js to change what shows up here — nothing here is hardcoded.
+  // Pull the newest couple items from each content type and interleave
+  // them round-robin, so all three categories get a fair shot at the
+  // 4 visible slots instead of the last category always getting cut.
+  const gameItems = GAMES.slice(0, 2).map(g => ({
+    flagClass: 'mission', flagLabel: 'Mission',
+    date: g.statusLabel, title: g.title, note: g.tagline,
+    href: `mission.html?game=${g.slug}`
+  }));
+  const comicItems = COMICS.slice().reverse().slice(0, 2).map(c => ({
+    flagClass: 'comic', flagLabel: 'Comic',
+    date: c.date, title: c.title, note: 'Read the strip',
+    href: `comics.html?comic=${c.slug}`
+  }));
+  const caseItems = CASE_FILES.slice().reverse().slice(0, 2).map(s => ({
+    flagClass: 'case', flagLabel: 'Case File',
+    date: s.date, title: s.title, note: s.excerpt,
+    href: `case-file.html?story=${s.slug}`
+  }));
+
+  const activityItems = [];
+  const sources = [gameItems, comicItems, caseItems];
+  for (let round = 0; round < 2 && activityItems.length < 4; round++) {
+    sources.forEach(list => {
+      if (list[round] && activityItems.length < 4) activityItems.push(list[round]);
+    });
+  }
+
+  const panelsEl = document.getElementById('activity-panels');
+  activityItems.slice(0, 4).forEach(item => {
+    const panel = document.createElement('a');
+    panel.href = item.href;
+    panel.className = 'panel';
+    panel.innerHTML = `
+      <div class="panel-halftone"></div>
+      <div class="flag ${item.flagClass}">${item.flagLabel}</div>
+      <div class="panel-date">${item.date}</div>
+      <div class="panel-title">${item.title}</div>
+      <div class="panel-note">${item.note}</div>
+    `;
+    panelsEl.appendChild(panel);
+  });
+</script>
 
 </body>
 </html>

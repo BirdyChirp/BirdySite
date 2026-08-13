@@ -229,12 +229,15 @@ nav{display:flex; gap:2px; flex-wrap:wrap;}
 
 .panels{display:grid; grid-template-columns:repeat(2, 1fr); gap:20px;}
 .panel{
+  display:block;
   background:#fff;
   border:3px solid var(--ink);
   position:relative;
   padding:20px 20px 18px;
   box-shadow:5px 5px 0 rgba(24,22,20,0.9);
+  transition:transform .12s ease;
 }
+.panel:hover{transform:translateY(-3px);}
 .panel-halftone{
   position:absolute; top:0; right:0;
   width:56px; height:56px;
