@@ -12,7 +12,7 @@ const COMICS = [
     pages: [
       "comics/sus-box-s1_up.png"
     ]
-  },  
+  },
   {
     slug: "catch-the-squirrel",
     title: "Counter-Squirrelism Strike Force",
