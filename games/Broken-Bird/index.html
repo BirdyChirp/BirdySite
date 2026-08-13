@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Broken Bird</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d0d1a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Press Start 2P', monospace;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  h1 {
+    font-size: 18px;
+    color: #f7c948;
+    margin-bottom: 14px;
+    letter-spacing: 3px;
+  }
+
+  #game-wrapper {
+    position: relative;
+  }
+
+  canvas {
+    border: 3px solid #f7c948;
+    border-radius: 6px;
+    display: block;
+    background: #16213e;
+  }
+
+  #hud {
+    position: absolute;
+    top: 14px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    pointer-events: none;
+  }
+
+  #hud span {
+    font-size: 11px;
+    color: #f7c948;
+    text-shadow: 0 0 8px #f7c94888;
+  }
+
+  #instructions {
+    margin-top: 12px;
+    font-size: 7px;
+    color: #555;
+    text-align: center;
+    line-height: 2;
+  }
+
+  #death-overlay {
+    display: none;
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.72);
+    border-radius: 4px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
+
+  #death-overlay.active { display: flex; }
+
+  #death-title {
+    font-size: 22px;
+    color: #ff6b6b;
+    text-shadow: 0 0 18px #ff6b6b88;
+    animation: pulse 0.8s ease-in-out infinite alternate;
+  }
+
+  #death-score {
+    font-size: 10px;
+    color: #f7c948;
+  }
+
+  #restart-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    padding: 12px 24px;
+    background: #f7c948;
+    color: #1a1a2e;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.1s;
+  }
+  #restart-btn:hover { transform: scale(1.05); }
+
+  @keyframes pulse {
+    from { opacity: 1; }
+    to   { opacity: 0.6; }
+  }
+
+  #mute-btn {
+    position: absolute;
+    bottom: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid #f7c948;
+    border-radius: 4px;
+    color: #f7c948;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all;
+    z-index: 10;
+    transition: background 0.15s;
+  }
+  #mute-btn:hover { background: rgba(247,201,72,0.18); }
+
+  #start-overlay, #pause-overlay {
+    display: none;
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.78);
+    border-radius: 4px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
+  #start-overlay.active, #pause-overlay.active { display: flex; }
+
+  #start-title {
+    font-size: 26px;
+    color: #f7c948;
+    text-shadow: 0 0 20px #f7c94888;
+    animation: pulse 0.9s ease-in-out infinite alternate;
+  }
+  #pause-title {
+    font-size: 22px;
+    color: #a8dadc;
+    text-shadow: 0 0 18px #a8dadc88;
+  }
+  .overlay-sub {
+    font-size: 8px;
+    color: #aaa;
+    line-height: 2;
+    text-align: center;
+  }
+  .overlay-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    padding: 12px 24px;
+    background: #f7c948;
+    color: #1a1a2e;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .overlay-btn:hover { transform: scale(1.05); }
+</style>
+</head>
+<body>
+
+<h1>🐦 BROKEN BIRD</h1>
+
+<div id="game-wrapper">
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="hud">
+    <span>SCORE: <span id="score">0</span></span>
+    <span id="timer-display"></span>
+  </div>
+
+  <div id="start-overlay" class="active">
+    <div id="start-title">🐦 BROKEN BIRD</div>
+    <div class="overlay-sub">SPACE / CLICK — flap<br>Dodge the cats. Pipes are harmless.<br>ESC — pause</div>
+    <button class="overlay-btn" id="start-btn">▶ START</button>
+  </div>
+
+  <div id="pause-overlay">
+    <div id="pause-title">⏸ PAUSED</div>
+    <div class="overlay-sub">Press ESC or click to resume</div>
+    <button class="overlay-btn" id="resume-btn">▶ RESUME</button>
+  </div>
+
+    <div id="death-overlay" id="death-overlay">
+    <div id="death-title">🐱 GOT YOU!</div>
+    <div id="death-score">SCORE: <span id="final-score">0</span></div>
+    <button id="restart-btn">▶ PLAY AGAIN</button>
+  </div>
+  <button id="mute-btn" title="Mute/Unmute">🔊</button>
+</div>
+
+<div id="instructions">
+  SPACE / CLICK — flap &nbsp;|&nbsp; Dodge the cat. Pipes? Ghost mode. Cat? Very real.
+</div>
+
+<script>
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Big canvas — fill most of the viewport
+  function resizeCanvas() {
+    const maxW = window.innerWidth - 40;
+    const maxH = window.innerHeight - 160;
+    canvas.width  = maxW;
+    canvas.height = maxH;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // ── Audio Engine ─────────────────────────────────────────────────────
+  let audioCtx = null;
+  let masterGain = null;
+  let bgmInterval = null;
+  let muted = false;
+
+  function getAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.connect(audioCtx.destination);
+      masterGain.gain.setValueAtTime(1, audioCtx.currentTime);
+    }
+    return audioCtx;
+  }
+
+  function playTone(freq, type, duration, vol, startTime, fadeOut) {
+    const ac = getAudio();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain);
+    gain.connect(masterGain);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, startTime);
+    gain.gain.setValueAtTime(vol, startTime);
+    if (fadeOut) gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    osc.start(startTime);
+    osc.stop(startTime + duration);
+  }
+
+  function soundHop() {
+    const ac = getAudio();
+    const t = ac.currentTime;
+    // quick chirpy upward sweep
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain); gain.connect(masterGain);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(320, t);
+    osc.frequency.exponentialRampToValueAtTime(620, t + 0.08);
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    osc.start(t); osc.stop(t + 0.13);
+  }
+
+  function soundDeath() {
+    const ac = getAudio();
+    const t = ac.currentTime;
+    // descending wail
+    [
+      [440, 0.00], [370, 0.10], [300, 0.20], [220, 0.32], [160, 0.46], [100, 0.62]
+    ].forEach(([freq, offset]) => {
+      playTone(freq, 'sawtooth', 0.14, 0.22, t + offset, true);
+    });
+    // low thud
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain); gain.connect(masterGain);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(80, t + 0.1);
+    osc.frequency.exponentialRampToValueAtTime(30, t + 0.5);
+    gain.gain.setValueAtTime(0.3, t + 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+    osc.start(t + 0.1); osc.stop(t + 0.6);
+  }
+
+
+  function soundWallBonk() {
+    const ac = getAudio();
+    const t = ac.currentTime;
+    // Dull thud + short buzz — like bonking your head
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain); gain.connect(masterGain);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(180, t);
+    osc.frequency.exponentialRampToValueAtTime(80, t + 0.12);
+    gain.gain.setValueAtTime(0.25, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    osc.start(t); osc.stop(t + 0.19);
+    // little rattle after
+    const osc2 = ac.createOscillator();
+    const gain2 = ac.createGain();
+    osc2.connect(gain2); gain2.connect(masterGain);
+    osc2.type = 'sawtooth';
+    osc2.frequency.setValueAtTime(120, t + 0.08);
+    osc2.frequency.exponentialRampToValueAtTime(60, t + 0.22);
+    gain2.gain.setValueAtTime(0.12, t + 0.08);
+    gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    osc2.start(t + 0.08); osc2.stop(t + 0.26);
+  }
+
+  // Background music — chiptune loop
+  function startBGM() {
+    if (bgmInterval) return;
+    const ac = getAudio();
+
+    // Melody: simple upbeat pattern in C major pentatonic
+    const melody = [
+      523, 659, 784, 659, 523, 392, 440, 523,
+      659, 784, 880, 784, 659, 523, 392, 440
+    ];
+    // Bass: root notes
+    const bass = [
+      131, 131, 165, 165, 146, 146, 131, 131,
+      131, 131, 165, 165, 146, 146, 131, 131
+    ];
+
+    let step = 0;
+    const BPM = 160;
+    const stepLen = 60 / BPM / 2; // eighth notes
+
+    function tick() {
+      if (!audioCtx || gameOver) return;
+      const t = ac.currentTime;
+      const i = step % melody.length;
+
+      // Melody — triangle wave, airy
+      playTone(melody[i], 'triangle', stepLen * 0.7, 0.09, t, true);
+
+      // Bass every 2 steps
+      if (step % 2 === 0) {
+        playTone(bass[i], 'square', stepLen * 1.6, 0.06, t, true);
+      }
+
+      // Hi-hat every step
+      {
+        const bufSize = ac.sampleRate * 0.04;
+        const buf = ac.createBuffer(1, bufSize, ac.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let j = 0; j < bufSize; j++) data[j] = (Math.random() * 2 - 1) * (1 - j / bufSize);
+        const src = ac.createBufferSource();
+        const gainN = ac.createGain();
+        src.buffer = buf;
+        src.connect(gainN); gainN.connect(masterGain);
+        gainN.gain.setValueAtTime(step % 4 === 0 ? 0.07 : 0.03, t);
+        src.start(t);
+      }
+
+      step++;
+    }
+
+    tick();
+    bgmInterval = setInterval(tick, stepLen * 1000);
+  }
+
+  function stopBGM() {
+    if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
+  }
+
+    // ── State ─────────────────────────────────────────────────────────────
+  let score = 0;
+  let gameOver = false;
+  let gameStarted = false;
+  let paused = false;
+  let frameCount = 0;
+  let gameStartTime = Date.now();
+
+  // Wall-hit penalty
+  let penaltyUntil = 0; // timestamp when penalty ends
+
+  const scoreEl       = document.getElementById('score');
+  const finalScoreEl  = document.getElementById('final-score');
+  const deathOverlay  = document.getElementById('death-overlay');
+  const startOverlay  = document.getElementById('start-overlay');
+  const pauseOverlay  = document.getElementById('pause-overlay');
+  const timerDisplay  = document.getElementById('timer-display');
+  document.getElementById('restart-btn').addEventListener('click', restartGame);
+
+  // ── Bird ──────────────────────────────────────────────────────────────
+  const bird = {
+    x: 100,
+    y: 0,
+    size: 22,
+    vy: 0,
+    vx: 0,
+    flapStrength: -12,
+    gravity: 0.60,
+    alive: true,
+    boostUntil: 0,
+    reset() {
+      this.x  = 100;
+      this.y  = canvas.height / 2;
+      this.vy = 0;
+      this.vx = 0;
+      this.boostUntil = 0;
+      this.alive = true;
+    },
+    flap() { if (this.alive) { this.vy = this.flapStrength; soundHop(); } },
+    update() {
+      this.vy += this.gravity;
+      this.y  += this.vy;
+
+      // Horizontal: apply boost then drift back left
+      if (Date.now() < this.boostUntil) {
+        this.vx += 0.08; // accelerate right during boost
+      } else {
+        this.vx *= 0.98; // friction — slowly drift back left
+        this.vx -= 0.04; // gentle pull back toward left
+      }
+      this.x += this.vx;
+      // Clamp horizontally
+      const minX = this.size + 10;
+      const maxX = canvas.width - this.size - 10;
+      if (this.x < minX) { this.x = minX; this.vx = 0; }
+      if (this.x > maxX) { this.x = maxX; this.vx = 0; }
+
+      if (this.y > canvas.height - this.size) {
+        this.y = canvas.height - this.size;
+        this.vy *= -0.4;
+        this.vx += 1.2; // rightward burst
+        this.boostUntil = Date.now() + 1000;
+        triggerWallPenalty();
+      }
+      if (this.y < this.size) {
+        this.y = this.size;
+        this.vy *= -0.4;
+        this.vx += 1.2; // rightward burst
+        this.boostUntil = Date.now() + 1000;
+        triggerWallPenalty();
+      }
+    },
+    draw() {
+      const W = this.size, H = this.size * 0.75;
+      const funny = Date.now() < penaltyUntil;
+      // body
+      ctx.fillStyle = funny ? '#ff6b6b' : '#f7c948';
+      ctx.beginPath();
+      ctx.ellipse(this.x, this.y, W, H, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // wing
+      const wo = Math.sin(Date.now() / 110) * 7;
+      ctx.fillStyle = funny ? '#cc3333' : '#e5b200';
+      ctx.beginPath();
+      ctx.ellipse(this.x - 7, this.y - wo, 11, 6, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (funny) {
+        // Dizzy X eyes
+        ctx.strokeStyle = '#1a1a2e';
+        ctx.lineWidth = 2;
+        for (const [ex, ey] of [[this.x + 8, this.y - 7], [this.x + 16, this.y - 7]]) {
+          ctx.beginPath(); ctx.moveTo(ex-3, ey-3); ctx.lineTo(ex+3, ey+3); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(ex+3, ey-3); ctx.lineTo(ex-3, ey+3); ctx.stroke();
+        }
+        // Wavy mouth
+        ctx.strokeStyle = '#1a1a2e';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(this.x + 6, this.y + 5);
+        ctx.bezierCurveTo(this.x + 10, this.y + 2, this.x + 14, this.y + 8, this.x + 18, this.y + 5);
+        ctx.stroke();
+        // Stars spinning around head
+        const t = Date.now() / 300;
+        for (let i = 0; i < 3; i++) {
+          const angle = t + (i * Math.PI * 2 / 3);
+          const sx = this.x + Math.cos(angle) * 28;
+          const sy = this.y - 10 + Math.sin(angle) * 14;
+          ctx.font = '10px serif';
+          ctx.fillText('⭐', sx - 5, sy + 4);
+        }
+      } else {
+        // Normal eye
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath(); ctx.arc(this.x + 11, this.y - 5, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(this.x + 12, this.y - 6, 1.5, 0, Math.PI * 2); ctx.fill();
+      }
+      // beak
+      ctx.fillStyle = '#ff9500';
+      ctx.beginPath();
+      ctx.moveTo(this.x + 19, this.y - 2);
+      ctx.lineTo(this.x + 30, this.y);
+      ctx.lineTo(this.x + 19, this.y + 4);
+      ctx.fill();
+    }
+  };
+
+  // ── Obstacles (bird ghosts through) ───────────────────────────────────
+  const obstacles = [];
+  let obstacleTimer = 0;
+
+  // Randomised gap patterns
+  const PATTERNS = ['normal', 'high', 'low', 'wide', 'narrow', 'moving'];
+
+  // ── Wall penalty ─────────────────────────────────────────────────────
+  function triggerWallPenalty() {
+    if (Date.now() < penaltyUntil) return;
+    penaltyUntil = Date.now() + 3000;
+    soundWallBonk();
+  }
+
+  function drawVignette() {
+    if (Date.now() >= penaltyUntil) return;
+    const progress = (penaltyUntil - Date.now()) / 3000;
+    const alpha = 0.6 * progress;
+    const grad = ctx.createRadialGradient(
+      canvas.width / 2, canvas.height / 2, canvas.height * 0.3,
+      canvas.width / 2, canvas.height / 2, canvas.width * 0.85
+    );
+    grad.addColorStop(0, 'rgba(180,0,0,0)');
+    grad.addColorStop(1, `rgba(210,0,0,${alpha})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+    function spawnObstacle() {
+    const pattern = PATTERNS[Math.floor(Math.random() * PATTERNS.length)];
+    const W = canvas.width;
+    const H = canvas.height;
+    let gap, topHeight;
+
+    switch (pattern) {
+      case 'high':   gap = 100; topHeight = 20 + Math.random() * 60;           break;
+      case 'low':    gap = 100; topHeight = H - 120 - Math.random() * 60;      break;
+      case 'wide':   gap = 160; topHeight = 60 + Math.random() * (H - 220);    break;
+      case 'narrow': gap = 70;  topHeight = 80 + Math.random() * (H - 180);    break;
+      case 'moving': gap = 110; topHeight = 80 + Math.random() * (H - 200);    break;
+      default:       gap = 110; topHeight = 50 + Math.random() * (H - gap - 80); break;
+    }
+
+    obstacles.push({
+      x: W + 10,
+      topHeight,
+      bottomY: topHeight + gap,
+      gap,
+      pattern,
+      moveDir: 1,
+      scored: false
+    });
+  }
+
+  function updateObstacles() {
+    obstacleTimer++;
+    // Random spacing between 70 and 120 frames
+    const spawnInterval = 70 + Math.floor(Math.random() * 50);
+    if (obstacleTimer > spawnInterval) { spawnObstacle(); obstacleTimer = 0; }
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const obs = obstacles[i];
+      obs.x -= 3;
+
+      // Moving pattern: pipe gap drifts up/down
+      if (obs.pattern === 'moving') {
+        obs.topHeight += obs.moveDir * 1.2;
+        obs.bottomY    = obs.topHeight + obs.gap;
+        if (obs.topHeight < 20 || obs.topHeight > canvas.height - obs.gap - 20) obs.moveDir *= -1;
+      }
+
+      if (!obs.scored && obs.x + 44 < bird.x) {
+        obs.scored = true;
+        score++;
+        scoreEl.textContent = score;
+        if (score >= nextBigCatAt) { nextBigCatAt += 10; bigCatPending = true; }
+      }
+      if (obs.x + 44 < 0) obstacles.splice(i, 1);
+    }
+  }
+
+  function drawObstacles() {
+    obstacles.forEach(obs => {
+      const OW = 44;
+      // Ghost sparkle when bird overlaps
+      const inX = bird.x + bird.size > obs.x && bird.x - bird.size < obs.x + OW;
+      const inGap = bird.y > obs.topHeight && bird.y < obs.bottomY;
+      if (inX && !inGap && frameCount % 5 === 0) spawnParticle(obs.x + OW/2, bird.y, 'ghost');
+
+      // Top pipe
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(obs.x, 0, OW, obs.topHeight);
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(obs.x - 5, obs.topHeight - 16, OW + 10, 16);
+
+      // Bottom pipe
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(obs.x, obs.bottomY, OW, canvas.height - obs.bottomY);
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(obs.x - 5, obs.bottomY, OW + 10, 16);
+    });
+  }
+
+  // ── Cat enemy ─────────────────────────────────────────────────────────
+  const cats = [];
+  let catSpawnedAt = null; // ms after game start for first cat
+
+  let catInterval = 1500; // starts at 1.5 seconds
+  let nextBigCatAt = 10; // score milestone for next big cat
+  let bigCatPending = false;
+  const CAT_MIN_INTERVAL = 500; // floor at 0.5 seconds
+  let lastCatEscalation = 0; // tracks when we last sped up
+
+  function scheduleCat() {
+    catSpawnedAt = Date.now() + 5000; // 5 seconds grace period
+    catInterval = 1500;
+    lastCatEscalation = Date.now();
+  }
+
+  function maybespawnCat() {
+    if (!catSpawnedAt) return;
+    const now = Date.now();
+
+    // Every 5 seconds, shrink interval by 10%
+    if (now - lastCatEscalation >= 5000) {
+      catInterval = Math.max(CAT_MIN_INTERVAL, catInterval * 0.9);
+      lastCatEscalation = now;
+    }
+
+    if (now >= catSpawnedAt) {
+      const count = Date.now() < penaltyUntil ? 3 : 1;
+      for (let i = 0; i < count; i++) {
+        spawnCatOffset(i, count);
+      }
+      catSpawnedAt = now + catInterval;
+    }
+  }
+
+  function spawnCat() { spawnCatOffset(0, 1); }
+
+  function spawnCatOffset(index, total) {
+    const spawnX = canvas.width + 60;
+    // Space multiple cats vertically: spread ~40px apart centred on bird
+    const spread = 44;
+    const offset = total === 1 ? 0 : (index - (total - 1) / 2) * spread;
+    const y = Math.max(30, Math.min(canvas.height - 30, bird.y + offset));
+    const size = bigCatPending ? 42 : 28; // 28 * 1.5 = 42
+    if (index === total - 1) bigCatPending = false; // clear after last cat of this batch
+    cats.push({ x: spawnX, y, speed: 8 + Math.random() * 4, size });
+  }
+
+  function updateCats() {
+    maybespawnCat();
+    for (let i = cats.length - 1; i >= 0; i--) {
+      const cat = cats[i];
+      cat.x -= cat.speed;
+      if (cat.x < -80) cats.splice(i, 1);
+    }
+  }
+
+  function drawCat(cat) {
+    const x = cat.x, y = cat.y, s = cat.size;
+    const big = s > 28;
+    const fur    = big ? '#4a90d9' : '#e07b54';
+    const furDark = big ? '#2a5fa8' : '#7a3300';
+    const innerEar = big ? '#aad4ff' : '#ff9999';
+
+    // Body
+    ctx.fillStyle = fur;
+    ctx.beginPath();
+    ctx.ellipse(x, y, s, s * 0.75, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head (to the left, cat faces left — it's charging at the bird)
+    ctx.fillStyle = fur;
+    ctx.beginPath();
+    ctx.arc(x - s - 4, y - 2, s * 0.65, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Ears
+    ctx.fillStyle = fur;
+    ctx.beginPath();
+    ctx.moveTo(x - s - 18, y - 14);
+    ctx.lineTo(x - s - 26, y - 28);
+    ctx.lineTo(x - s - 8,  y - 18);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x - s - 2, y - 16);
+    ctx.lineTo(x - s - 4, y - 30);
+    ctx.lineTo(x - s + 8, y - 18);
+    ctx.fill();
+
+    // Inner ear
+    ctx.fillStyle = innerEar;
+    ctx.beginPath();
+    ctx.moveTo(x - s - 17, y - 16);
+    ctx.lineTo(x - s - 22, y - 26);
+    ctx.lineTo(x - s - 10, y - 19);
+    ctx.fill();
+
+    // Eyes (angry)
+    ctx.fillStyle = '#1a1a2e';
+    ctx.beginPath(); ctx.arc(x - s - 10, y - 5, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x - s + 2,  y - 5, 5, 0, Math.PI * 2); ctx.fill();
+    // Yellow pupils
+    ctx.fillStyle = '#f7c948';
+    ctx.beginPath(); ctx.ellipse(x - s - 10, y - 5, 2, 4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x - s + 2,  y - 5, 2, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+    // Angry brows
+    ctx.strokeStyle = furDark;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x - s - 15, y - 12); ctx.lineTo(x - s - 6, y - 10); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - s - 2,  y - 10); ctx.lineTo(x - s + 7, y - 12); ctx.stroke();
+
+    // Nose
+    ctx.fillStyle = '#ff7a7a';
+    ctx.beginPath(); ctx.arc(x - s - 4, y, 3, 0, Math.PI * 2); ctx.fill();
+
+    // Whiskers
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    for (let w = -1; w <= 1; w += 2) {
+      ctx.beginPath(); ctx.moveTo(x - s - 4, y); ctx.lineTo(x - s - 4 + w * 22, y - 3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - s - 4, y); ctx.lineTo(x - s - 4 + w * 22, y + 3); ctx.stroke();
+    }
+
+    // Tail (curves up at the back right)
+    ctx.strokeStyle = fur;
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x + s,  y);
+    ctx.bezierCurveTo(x + s + 20, y + 10, x + s + 30, y - 30, x + s + 18, y - 40);
+    ctx.stroke();
+    ctx.lineWidth = 1;
+
+    // Legs (running animation)
+    const kick = Math.sin(Date.now() / 80) * 10;
+    ctx.strokeStyle = fur;
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    for (let li = 0; li < 4; li++) {
+      const lx = x - s * 0.4 + li * (s * 0.28);
+      ctx.beginPath();
+      ctx.moveTo(lx, y + s * 0.6);
+      ctx.lineTo(lx + (li % 2 === 0 ? kick : -kick) * 0.5, y + s * 0.6 + 16);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 1;
+  }
+
+  function checkCatCollision() {
+    cats.forEach(cat => {
+      const dx = Math.abs(bird.x - (cat.x - cat.size));
+      const dy = Math.abs(bird.y - cat.y);
+      if (dx < cat.size * 1.1 && dy < cat.size * 0.9) {
+        triggerDeath();
+      }
+    });
+  }
+
+  // ── Particles ─────────────────────────────────────────────────────────
+  const particles = [];
+
+  function spawnParticle(x, y, type) {
+    const colors = type === 'ghost'
+      ? ['#f7c948','#a8dadc','#ffffff']
+      : ['#ff6b6b','#ff9500','#fff'];
+    for (let i = 0; i < (type === 'death' ? 20 : 5); i++) {
+      particles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * (type === 'death' ? 8 : 3),
+        vy: (Math.random() - 0.5) * (type === 'death' ? 8 : 3),
+        life: 1,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        r: type === 'death' ? 4 : 2.5
+      });
+    }
+  }
+
+  function updateParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy; p.life -= 0.035;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function drawParticles() {
+    particles.forEach(p => {
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Stars background ──────────────────────────────────────────────────
+  let stars = [];
+  function initStars() {
+    stars = Array.from({length: 60}, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.5 + 0.3,
+      twinkle: Math.random() * Math.PI * 2
+    }));
+  }
+  initStars();
+
+  function drawBackground() {
+    ctx.fillStyle = '#16213e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(s => {
+      s.twinkle += 0.03;
+      ctx.globalAlpha = 0.35 + Math.sin(s.twinkle) * 0.3;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Death & Restart ───────────────────────────────────────────────────
+  function triggerDeath() {
+    if (gameOver) return;
+    gameOver = true;
+    bird.alive = false;
+    spawnParticle(bird.x, bird.y, 'death');
+    soundDeath();
+    stopBGM();
+    finalScoreEl.textContent = score;
+    setTimeout(() => deathOverlay.classList.add('active'), 600);
+  }
+
+  function restartGame() {
+    deathOverlay.classList.remove('active');
+    stopBGM();
+    bgmStarted = false;
+    gameStarted = true;
+    paused = false;
+    obstacles.length = 0;
+    cats.length = 0;
+    particles.length = 0;
+    score = 0;
+    scoreEl.textContent = '0';
+    frameCount = 0;
+    obstacleTimer = 0;
+    gameOver = false;
+    bird.reset();
+    bird.y = canvas.height / 2;
+    gameStartTime = Date.now();
+    catInterval = 1500;
+    penaltyUntil = 0;
+    nextBigCatAt = 10;
+    bigCatPending = false;
+    scheduleCat();
+    loop();
+  }
+
+  // ── Countdown timer display (first 4 seconds) ─────────────────────────
+  function updateTimerDisplay() {
+    const elapsed = (Date.now() - gameStartTime) / 1000;
+    if (elapsed < 4) {
+      const remaining = Math.ceil(4 - elapsed);
+      timerDisplay.textContent = `🐱 IN ${remaining}...`;
+    } else {
+      timerDisplay.textContent = '';
+    }
+  }
+
+  // ── Main loop ─────────────────────────────────────────────────────────
+  let rafId = null;
+
+  function loop() {
+    if (gameOver || paused) return;
+    frameCount++;
+
+    drawBackground();
+    drawVignette();
+    updateObstacles();
+    drawObstacles();
+    updateCats();
+    cats.forEach(drawCat);
+    checkCatCollision();
+    updateParticles();
+    drawParticles();
+
+    if (bird.alive) bird.update();
+    bird.draw();
+
+    updateTimerDisplay();
+
+    rafId = requestAnimationFrame(loop);
+  }
+
+  let bgmStarted = false;
+  function ensureBGM() { if (!bgmStarted) { bgmStarted = true; startBGM(); } }
+
+  // ── Controls ──────────────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Escape') { e.preventDefault(); togglePause(); }
+    if (e.code === 'Space') { e.preventDefault(); if (!gameStarted) { startGame(); return; } if (paused) { togglePause(); return; } ensureBGM(); bird.flap(); }
+  });
+  canvas.addEventListener('click', () => { if (!gameStarted) { startGame(); return; } if (paused) { togglePause(); return; } ensureBGM(); bird.flap(); });
+
+  // ── Mute button ───────────────────────────────────────────────────────
+  const muteBtn = document.getElementById('mute-btn');
+  muteBtn.addEventListener('click', () => {
+    muted = !muted;
+    if (masterGain) masterGain.gain.setValueAtTime(muted ? 0 : 1, audioCtx.currentTime);
+    muteBtn.textContent = muted ? '🔇' : '🔊';
+  });
+
+    // ── Start / Pause overlays ────────────────────────────────────────────
+  function startGame() {
+    startOverlay.classList.remove('active');
+    gameStarted = true;
+    bird.reset();
+    bird.y = canvas.height / 2;
+    gameStartTime = Date.now();
+    catInterval = 1500;
+    penaltyUntil = 0;
+    nextBigCatAt = 10;
+    bigCatPending = false;
+    scheduleCat();
+    ensureBGM();
+    loop();
+  }
+
+  function togglePause() {
+    if (!gameStarted || gameOver) return;
+    paused = !paused;
+    if (paused) {
+      pauseOverlay.classList.add('active');
+      stopBGM();
+    } else {
+      pauseOverlay.classList.remove('active');
+      // Resume BGM
+      bgmStarted = false;
+      ensureBGM();
+      loop();
+    }
+  }
+
+  document.getElementById('start-btn').addEventListener('click', startGame);
+  document.getElementById('resume-btn').addEventListener('click', togglePause);
+
+  // Draw a static scene while on start screen
+  drawBackground();
+  bird.reset();
+  bird.y = canvas.height / 2;
+  bird.draw();
+</script>
+</body>
+</html>
