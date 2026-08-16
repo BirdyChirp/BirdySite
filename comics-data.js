@@ -21,5 +21,14 @@ const COMICS = [
     pages: [
       "Comics/squirrel-s2.png"
     ]
+  },
+  {
+    slug: "mission-failed",
+    title: "Mission Failed Successfully",
+    date: "Aug 17, 2026",
+    thumbnail: "Comics/roomba-s3.png",
+    pages: [
+      "Comics/roomba-s3.png"
+    ]
   }
 ];
